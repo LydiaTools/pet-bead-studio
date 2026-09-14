@@ -43,7 +43,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     colors = palette()
-    report = {'palette_id': 'mard-221-alfonse-doudou-v2026-09-14', 'brand': 'MARD',
+    report = {'palette_id': 'mard-221-alfonse-doudou-v2026-09-14', 'color_system': 'MARD 221 色号体系（公开参考）',
               'series': '221 色（A-H、M）', 'bead_size_mm': 2.6,
               'parameters': {'crop': 'center-square', 'grid': '64x64', 'ai_redraw': False, 'identity_anchors': 'manual in browser; not auto-added in this palette-only check'},
               'checks': [sample(path, colors) for path in sorted(args.samples.glob('*.jpg'))]}

@@ -312,14 +312,14 @@ function renderStats() {
   cells.filter(x => x >= 0).forEach(x => counts[x]++);
   const detailTotal = detailCells.filter(x => x >= 0).length;
   const easyTotal = cells.filter(x => x >= 0).length;
-  $('stats').innerHTML = `<p><b>细节版：</b>${detailTotal} 颗／${detailPalette.length} 色　<b>易拼版：</b>${easyTotal} 颗／${palette.length} 色<br><small>采购目标：${MARD_221.brand}｜${MARD_221.series}｜${MARD_221.beadSizeMm} mm。屏幕色仅用于匹配，请按色号采购。</small></p>`
-    + counts.map((n, i) => `<span class="swatch"><i class="dot" style="background:${rgb(i)}"></i>${palette[i].code}：${n} 颗</span>`).join('');
+  $('stats').innerHTML = `<p><b>细节版：</b>${detailTotal} 颗／${detailPalette.length} 色　<b>易拼版：</b>${easyTotal} 颗／${palette.length} 色<br><small>${MARD_221.colorSystem}｜${MARD_221.beadSizeMm} mm。源色号→市售下单核对格式；屏幕色仅用于匹配。</small></p>`
+    + counts.map((n, i) => `<span class="swatch"><i class="dot" style="background:${rgb(i)}"></i>${palette[i].code} → ${palette[i].purchaseCode}：${n} 颗</span>`).join('');
 }
 
 function assertDelivery(values, colors) {
   const known = new Set(MARD_221.colors.map(color => color.code));
   const used = values.filter(value => value >= 0).map(value => colors[value]);
-  if (!used.every(color => color && known.has(color.code))) throw new Error('存在未映射到 MARD 221 色号的可见格子。');
+  if (!used.every(color => color && known.has(color.code) && color.purchaseCode)) throw new Error('存在未映射到 MARD 221 色号体系／市售下单代码的可见格子。');
   const total = used.length;
   const byCode = used.reduce((map, color) => map.set(color.code, (map.get(color.code) || 0) + 1), new Map());
   if ([...byCode.values()].reduce((sum, count) => sum + count, 0) !== total) throw new Error('采购清单总数与可见格子数不一致。');
@@ -339,29 +339,29 @@ function purchaseRows() {
   const { total, byCode } = assertDelivery(cells, palette);
   const rows = [...byCode.entries()].map(([code, quantity]) => {
     const color = MARD_221.colors.find(item => item.code === code);
-    return [MARD_221.brand, MARD_221.series, MARD_221.beadSizeMm, color.code, color.name, quantity, MARD_221.id];
+    return [MARD_221.colorSystem, MARD_221.beadSizeMm, color.code, color.purchaseCode, color.name, quantity, MARD_221.id, MARD_221.procurementStatus];
   });
   return { total, rows };
 }
 
 function downloadShoppingList() {
   const { total, rows } = purchaseRows();
-  const header = ['brand', 'series', 'bead_size_mm', 'code', 'name', 'quantity', 'palette_id'];
+  const header = ['color_system', 'bead_size_mm', 'source_code', 'purchase_code', 'name', 'quantity', 'palette_id', 'procurement_status'];
   downloadText([header, ...rows].map(row => row.map(csvCell).join(',')).join('\n'), 'pet-bead-mard-221-shopping-list.csv');
-  $('status').textContent = `采购清单已下载：${total} 个可见格子，全部是 MARD 221 / 2.6 mm 色号。`;
+  $('status').textContent = `采购清单已下载：${total} 个可见格子均有源色号与市售下单代码；下单前仍须核对卖家、规格和批次。`;
 }
 
 function downloadGridCsv() {
   assertDelivery(cells, palette);
   const n = +$('grid').value;
-  const header = ['row', 'column', 'brand', 'series', 'bead_size_mm', 'code', 'name'];
+  const header = ['row', 'column', 'color_system', 'bead_size_mm', 'source_code', 'purchase_code', 'name', 'procurement_status'];
   const rows = cells.flatMap((value, index) => {
     if (value < 0) return [];
     const color = palette[value];
-    return [[Math.floor(index / n) + 1, index % n + 1, MARD_221.brand, MARD_221.series, MARD_221.beadSizeMm, color.code, color.name]];
+    return [[Math.floor(index / n) + 1, index % n + 1, MARD_221.colorSystem, MARD_221.beadSizeMm, color.code, color.purchaseCode, color.name, MARD_221.procurementStatus]];
   });
   downloadText([header, ...rows].map(row => row.map(csvCell).join(',')).join('\n'), 'pet-bead-mard-221-grid-coordinates.csv');
-  $('status').textContent = '带行列坐标的 MARD 色号图纸已下载。';
+  $('status').textContent = '带行列坐标、源色号和市售下单代码的图纸已下载。';
 }
 
 function coordinateGridDataUrl() {
@@ -436,8 +436,8 @@ $('png').onclick = () => {
 $('pdf').onclick = () => {
   const w = window.open('', '_blank');
   const { total, rows } = purchaseRows();
-  const list = rows.map(row => `<li><b>${row[3]}</b> ${row[4]}：${row[5]} 颗</li>`).join('');
-  w.document.write(`<!doctype html><meta charset="utf-8"><title>MARD 221 拼豆图纸</title><style>body{font-family:system-ui,"PingFang SC",sans-serif;margin:24px}img{max-width:760px;width:100%;image-rendering:pixelated}small{color:#555}</style><h1>宠物拼豆图纸·易拼版</h1><p>${MARD_221.brand}｜${MARD_221.series}｜${MARD_221.beadSizeMm} mm｜${total} 颗／${palette.length} 色</p><img src="${coordinateGridDataUrl()}" alt="带坐标的拼豆格子图纸"><h2>按色号采购</h2><ul>${list}</ul><small>每个可见格子均映射至本页色号。屏幕 RGB 仅供匹配，请按品牌、规格、色号采购；打印窗口可选择“存储为 PDF”。</small>`);
+  const list = rows.map(row => `<li><b>${row[2]} → ${row[3]}</b> ${row[4]}：${row[5]} 颗</li>`).join('');
+  w.document.write(`<!doctype html><meta charset="utf-8"><title>MARD 221 色号体系图纸</title><style>body{font-family:system-ui,"PingFang SC",sans-serif;margin:24px}img{max-width:760px;width:100%;image-rendering:pixelated}small{color:#555}</style><h1>宠物拼豆图纸·易拼版</h1><p>${MARD_221.colorSystem}｜${MARD_221.beadSizeMm} mm｜${total} 颗／${palette.length} 色</p><img src="${coordinateGridDataUrl()}" alt="带坐标的拼豆格子图纸"><h2>市售下单核对代码</h2><ul>${list}</ul><small>每个可见格子均映射至源色号和零填充市售代码。公开资料仅支持同色号体系／2.6 mm 市售线索；卖家、原厂身份、库存、批次和实物色差必须在下单前核对。</small>`);
   w.document.close();
   w.print();
 };

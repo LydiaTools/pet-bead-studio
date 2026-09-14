@@ -1,6 +1,7 @@
 /*
- * Frozen display-reference palette for one purchasable target only:
- * MARD 2.6 mm / 221-colour code system (A-H, M).
+ * Frozen display-reference palette for the MARD 221 code system (A-H, M).
+ * It is not evidence of original-manufacturer inventory, batch, or physical
+ * colour. `purchaseCode` is the zero-padded form visible on 2.6 mm listings.
  *
  * RGB values are a versioned screen-matching reference, not a physical-colour
  * measurement. See palette/MARD-221-SOURCES.md before making a purchase claim.
@@ -12,11 +13,13 @@ const MARD_221 = (() => {
   const hex = rgb => `#${rgb.map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
   return {
     id: 'mard-221-alfonse-doudou-v2026-09-14',
-    brand: 'MARD', series: '221 色（A-H、M）', beadSizeMm: 2.6,
+    colorSystem: 'MARD 221 色号体系（公开参考）', series: '221 色（A-H、M）', beadSizeMm: 2.6,
+    procurementStatus: '2.6 mm 同色号体系市售线索；卖家、原厂身份、库存、批次与实物色差未验证',
     paletteSourceSha256: '556a7e0098c0055bde47f78d430cc7d36cb3788c235f0238e6a610f64a46b0bf',
     colors: codes.map((code, i) => {
       const rgb = [...rgbBytes.slice(i * 3, i * 3 + 3)];
-      return { code, name: `MARD ${code}（公开色表未提供独立中文色名）`, group: code[0], rgb, hex: hex(rgb) };
+      const purchaseCode = `${code[0]}${code.slice(1).padStart(2, '0')}`;
+      return { code, purchaseCode, name: `色号体系 ${code}（公开色表未提供独立中文色名）`, group: code[0], rgb, hex: hex(rgb) };
     })
   };
 })();
