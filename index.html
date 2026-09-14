@@ -59,6 +59,8 @@
         <div class="actions">
           <button id="png" disabled>保存图纸图片</button>
           <button id="pdf" disabled class="quiet">打印图纸</button>
+          <button id="shoppingCsv" disabled class="quiet">下载采购清单 CSV</button>
+          <button id="gridCsv" disabled class="quiet">下载格子坐标 CSV</button>
           <button id="storyPack" disabled class="quiet">保存本次 5 张图</button>
         </div>
         <p class="preview-note">这里是逐格预排效果，不把它当成已经手工拼好的成品。</p>
@@ -89,7 +91,7 @@
     <b id="bgValue" hidden>48</b>
     <canvas id="ordinary" width="640" height="640" hidden></canvas>
     <canvas id="beadsDetail" width="640" height="640" hidden></canvas>
-    <section class="legend"><h2>通用颜色与豆数 <small>不是 MARD／Artkal 采购色号</small></h2><div id="stats">上传照片后显示统计。</div></section>
+    <section class="legend"><h2>MARD 221 色号与豆数 <small>2.6 mm；每格均映射到冻结色表代码</small></h2><div id="stats">上传照片后显示统计。</div></section>
 
     <div class="stage-nav">
       <button type="button" id="previous" class="quiet">上一步</button>
@@ -97,6 +99,7 @@
     </div>
     <p id="status" class="status">从一张照片开始，支持 JPG 和 PNG。</p>
   </main>
+  <script src="palette/mard-221-v2026-09-14.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -1,0 +1,7 @@
+{
+  "brand": "MARD",
+  "series": "221 色（A-H、M）",
+  "bead_size_mm": 2.6,
+  "grid": 4,
+  "cells": ["A1", "A1", "B1", null, "A1", "B1", "B1", null, "C1", "C1", "B1", "M1", "C1", "M1", "M1", "M1"]
+}
