@@ -1,6 +1,102 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>宠物拼豆图纸</title><link rel="stylesheet" href="style.css"></head><body>
-<main><header><p class="eyebrow">本地运行 · 不上传照片</p><h1>宠物拼豆图纸</h1><p>上传照片，裁切、手动取舍背景后生成图纸、通用配色统计和拼好效果模拟。</p></header>
-<section class="controls"><label class="upload">选择照片 <input id="file" type="file" accept="image/png,image/jpeg"></label><button id="demo" type="button">载入示例白狗</button><button id="clearOutline" type="button" disabled>清除主体轮廓</button><span id="status">请先选择 PNG 或 JPEG 照片</span><div class="params"><label>构图 <select id="preset"><option value="full">全身／原构图</option><option value="head">居中大头（72%）</option></select></label><label>网格 <input id="grid" type="range" min="24" max="96" value="64"><b id="gridValue">64 × 64</b></label><label>最大颜色 <input id="colors" type="range" min="6" max="32" value="16"><b id="colorValue">16 色</b></label><label>标记类型 <select id="feature"><option value="眼睛">眼睛</option><option value="鼻口">鼻口</option><option value="独特花纹">独特花纹</option><option value="背景">背景</option><option value="主体轮廓">主体轮廓</option></select></label><label>背景容差 <input id="bgTolerance" type="range" min="10" max="120" value="48"><b id="bgValue">48</b></label></div></section>
-<section class="workspace"><article><h2>裁切、身份点与背景</h2><canvas id="source" width="480" height="480"></canvas><p>选择“主体轮廓”后沿宠物外缘点 6–16 个点，只保留轮廓内格子；可清除重来。选择“背景”后点画面边缘背景 1–3 次；其他选项最多标 3 个身份点并锁色。</p></article><article><h2>细节版图纸 <small>颜色更丰富</small></h2><canvas id="ordinary" width="640" height="640"></canvas><p>保留更多颜色，不做碎格清理。</p></article><article><h2>易拼版图纸 <small>颜色更少</small></h2><canvas id="pattern" width="640" height="640"></canvas><div class="actions"><button id="png" disabled>下载易拼版 PNG</button><button id="pdf" disabled>下载易拼版 PDF</button><button id="storyPack" disabled>下载 5 张过程图</button></div></article><article><h2>细节版拼好效果</h2><canvas id="beadsDetail" width="640" height="640"></canvas><p>与细节版图纸逐格对应。</p></article><article><h2>易拼版拼好效果</h2><canvas id="beadsEasy" width="640" height="640"></canvas><p>与易拼版图纸逐格对应，已减少零散色块。</p></article></section>
-<section class="legend"><h2>通用颜色与豆数 <small>不是 MARD／Artkal 采购色号</small></h2><div id="stats">上传照片后显示统计。</div></section>
-</main><script src="app.js"></script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>宠物拼豆图纸</title>
+  <link rel="stylesheet" href="style.css?v=16">
+</head>
+<body>
+  <main id="app" data-step="1">
+    <header>
+      <p class="eyebrow">照片只在你的设备上处理</p>
+      <h1>把我家这只，变成拼豆</h1>
+      <p>不用先学复杂的软件。跟着五步做，先把它的样子留下来，再决定怎样真的拼出来。</p>
+    </header>
+
+    <nav class="stepper" aria-label="制作步骤">
+      <button type="button" class="step" data-step="1"><i>1</i>选照片</button>
+      <button type="button" class="step" data-step="2"><i>2</i>圈出它</button>
+      <button type="button" class="step" data-step="3"><i>3</i>留住眼鼻</button>
+      <button type="button" class="step" data-step="4"><i>4</i>定格数颜色</button>
+      <button type="button" class="step" data-step="5"><i>5</i>检查并导出</button>
+    </nav>
+
+    <section class="stage-shell" aria-live="polite">
+      <div class="stage-copy">
+        <p class="stage-count" id="stageCount">第 1 步，共 5 步</p>
+        <h2 id="stageTitle">先选一张，让人一眼认出它的照片</h2>
+        <p id="stageDescription">不用摆拍。日常一张有眼神、有小习惯的照片，就可以从这里开始。</p>
+      </div>
+
+      <div class="stage-actions step-1-actions">
+        <label class="upload">选一张它的照片 <input id="file" type="file" accept="image/png,image/jpeg"></label>
+        <button id="demo" type="button" class="quiet">先用小狗照片试试</button>
+        <label>照片怎么取景 <select id="preset"><option value="full">多留一点身体</option><option value="head">靠近一点，看脸</option></select></label>
+      </div>
+
+      <div class="stage-actions step-2-actions">
+        <p>沿着耳朵、身体和尾巴边缘点下去；至少 6 下，就只保留我家的这只。</p>
+        <button id="clearOutline" type="button" class="quiet" disabled>重新圈一遍</button>
+      </div>
+
+      <div class="stage-actions step-3-actions">
+        <p>点一下最像它的地方。眼睛、鼻口和特别的花纹，比多几种灰色更重要。</p>
+        <input id="feature" type="hidden" value="眼睛">
+        <div class="feature-buttons" aria-label="选择要留下的特征">
+          <button type="button" class="feature" data-feature="眼睛">留住眼睛</button>
+          <button type="button" class="feature" data-feature="鼻口">留住鼻口</button>
+          <button type="button" class="feature" data-feature="独特花纹">留住花纹</button>
+        </div>
+      </div>
+
+      <div class="stage-actions step-4-actions">
+        <label>每边拼多少颗 <input id="grid" type="range" min="24" max="96" value="64"><b id="gridValue">64 × 64</b></label>
+        <label>最多用几种颜色 <input id="colors" type="range" min="6" max="32" value="16"><b id="colorValue">16 色</b></label>
+      </div>
+
+      <div class="stage-actions step-5-actions">
+        <div class="actions">
+          <button id="png" disabled>保存图纸图片</button>
+          <button id="pdf" disabled class="quiet">打印图纸</button>
+          <button id="storyPack" disabled class="quiet">保存本次 5 张图</button>
+        </div>
+        <p class="preview-note">这里是逐格预排效果，不把它当成已经手工拼好的成品。</p>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <article class="source-card" data-shows="1 2 3">
+        <div class="card-heading"><div><p class="card-kicker" id="canvasKicker">从日常照片开始</p><h2 id="canvasTitle">我的这只</h2></div><span class="tap-hint" id="tapHint">上传后开始</span></div>
+        <canvas id="source" width="480" height="480"></canvas>
+        <p id="sourceHelp">先选照片。你不用为了做拼豆，专门让它摆好。</p>
+      </article>
+
+      <article class="grid-card" data-shows="4">
+        <div class="card-heading"><div><p class="card-kicker">第 4 步</p><h2>真的拼得出来的图纸</h2></div><span class="tap-hint">易拼版</span></div>
+        <canvas id="pattern" width="640" height="640"></canvas>
+        <p>减少零散的颜色，但不把眼睛、鼻口和轮廓压扁成一团。</p>
+      </article>
+
+      <article class="bead-card" data-shows="5">
+        <div class="card-heading"><div><p class="card-kicker">第 5 步</p><h2>拼完以后，像不像它</h2></div><span class="tap-hint">预排效果</span></div>
+        <canvas id="beadsEasy" width="640" height="640"></canvas>
+        <p>这是按图纸逐格生成的圆豆预排，用来检查神态和辨识点；不是实体成品。</p>
+      </article>
+    </section>
+
+    <input id="bgTolerance" type="hidden" value="48">
+    <b id="bgValue" hidden>48</b>
+    <canvas id="ordinary" width="640" height="640" hidden></canvas>
+    <canvas id="beadsDetail" width="640" height="640" hidden></canvas>
+    <section class="legend"><h2>通用颜色与豆数 <small>不是 MARD／Artkal 采购色号</small></h2><div id="stats">上传照片后显示统计。</div></section>
+
+    <div class="stage-nav">
+      <button type="button" id="previous" class="quiet">上一步</button>
+      <button type="button" id="next">下一步</button>
+    </div>
+    <p id="status" class="status">从一张照片开始，支持 JPG 和 PNG。</p>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

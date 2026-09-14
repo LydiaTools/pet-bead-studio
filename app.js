@@ -12,6 +12,51 @@ let features = [];
 let outline = [];
 let detailCells = [];
 let detailPalette = [];
+let activeStep = 1;
+
+const STEP_COPY = {
+  1: ['先选一张，让人一眼认出它的照片', '不用摆拍。日常一张有眼神、有小习惯的照片，就可以从这里开始。', '从日常照片开始', '我的这只', '上传后开始'],
+  2: ['圈出我家的这只', '只要沿着它的边缘点一圈，背景就不会把它挤没。', '先把它和背景分开', '我家的这只', '沿边缘点一下'],
+  3: ['留住一眼就认得出的地方', '眼睛、鼻口和特别的花纹，才是“它像不像它”的关键。', '比毛色更多一点，是它的神态', '留下熟悉的眼睛', '点一下眼睛'],
+  4: ['决定一个真的能拼完的大小', '格子和颜色不是越多越好。够像，也要让人愿意一颗颗拼完。', '', '', '看图纸'],
+  5: ['最后检查：拼完以后，还像不像它', '先看预排效果和用豆数量；确认神态还在，再把图纸带走。', '', '', '预排效果'],
+};
+
+function sourceHint() {
+  const hints = {
+    '眼睛': '点一下照片里的眼睛，把它的颜色留下来。最多可以选 3 处。',
+    '鼻口': '点一下鼻子或嘴巴，把这些熟悉的颜色留下来。最多可以选 3 处。',
+    '独特花纹': '点一下它特别的毛色或花纹，把这个颜色留下来。最多可以选 3 处。',
+    '背景': '在照片边缘的背景上点 1–3 下，去掉相近的背景颜色。',
+    '主体轮廓': '沿宠物身体边缘点 6–16 下，圈外的背景就会去掉。不满意可以重新圈。',
+  };
+  return hints[$('feature').value];
+}
+
+function chooseFeature(name) {
+  $('feature').value = name;
+  document.querySelectorAll('.feature').forEach(button => button.classList.toggle('active', button.dataset.feature === name));
+  $('sourceHelp').textContent = sourceHint();
+}
+
+function setStep(next) {
+  activeStep = Math.max(1, Math.min(5, next));
+  const [title, description, kicker, canvasTitle, hint] = STEP_COPY[activeStep];
+  $('app').dataset.step = activeStep;
+  $('stageCount').textContent = `第 ${activeStep} 步，共 5 步`;
+  $('stageTitle').textContent = title;
+  $('stageDescription').textContent = description;
+  $('canvasKicker').textContent = kicker;
+  $('canvasTitle').textContent = canvasTitle;
+  $('tapHint').textContent = hint;
+  document.querySelectorAll('.step').forEach(button => button.classList.toggle('active', +button.dataset.step === activeStep));
+  document.querySelectorAll('[data-shows]').forEach(card => card.classList.toggle('visible', card.dataset.shows.split(' ').includes(String(activeStep))));
+  if (activeStep === 2) chooseFeature('主体轮廓');
+  if (activeStep === 3 && !['眼睛', '鼻口', '独特花纹'].includes($('feature').value)) chooseFeature('眼睛');
+  if (activeStep < 2) $('sourceHelp').textContent = '先选照片。你不用为了做拼豆，专门让它摆好。';
+  $('previous').disabled = activeStep === 1;
+  $('next').textContent = activeStep === 5 ? '回看第一步' : '下一步';
+}
 
 const draw = () => {
   if (!image) return;
@@ -86,16 +131,16 @@ const draw = () => {
   $('png').disabled = $('pdf').disabled = $('storyPack').disabled = false;
   $('clearOutline').disabled = !outline.length;
   $('status').textContent = invalidOutline
-    ? '主体轮廓太小或无效，未应用；请清除后沿宠物外缘重画。'
+    ? '还没圈住宠物，点“重新圈一遍”，沿身体边缘再试一次。'
     : outline.length >= 6
-    ? `两版已生成；主体轮廓已保留 ${outline.length} 个控制点。`
+    ? '圈好了，外面的背景已经去掉。看看有没有漏掉耳朵或尾巴。'
     : outline.length
-    ? `主体轮廓还需 ${6 - outline.length} 个点才会应用；请继续沿宠物外缘点选。`
+    ? `再沿宠物边缘点 ${6 - outline.length} 下，就能去掉圈外的背景。`
     : backgroundSamples.length
-    ? `两版已生成；已按 ${backgroundSamples.length} 个背景样本清除边缘连通背景。`
+    ? '已去掉边缘相近的背景颜色，看看宠物有没有被误删。'
     : pins.length
-      ? '两版已生成，并锁定了识别点颜色。'
-    : '两版已生成；可点击左图锁定眼睛、鼻口或花纹颜色。';
+      ? '你选的颜色留下来了，看看图纸里的它像不像。'
+    : '图纸出来了。点一下照片里的眼睛，把它的颜色留下来。';
 };
 
 function quantize(pts, k, pins = []) {
@@ -258,7 +303,10 @@ function loadImage(url) {
   features = [];
   outline = [];
   image = new Image();
-  image.onload = draw;
+  image.onload = () => {
+    draw();
+    setStep(2);
+  };
   image.src = url;
 }
 
@@ -270,20 +318,20 @@ $('file').onchange = e => {
 };
 $('demo').onclick = () => loadImage('assets/demo-white-dog.jpg');
 src.onclick = e => {
-  if (!image) return;
+  if (!image) { $('status').textContent = '先选一张照片，再从它的眼睛和轮廓开始。'; return; }
   const r = src.getBoundingClientRect();
   const x = Math.round((e.clientX - r.left) * 480 / r.width);
   const y = Math.round((e.clientY - r.top) * 480 / r.height);
   const name = $('feature').value;
   if (name === '主体轮廓') {
-    if (outline.length === 16) { $('status').textContent = '主体轮廓最多 16 个点；请清除后重画。'; return; }
+    if (outline.length === 16) { $('status').textContent = '已经点满 16 下了；想改一改，可以点“重新圈一遍”。'; return; }
     outline.push({ x, y });
     draw();
     return;
   }
   const edge = 72;
   if (name === '背景' && x > edge && x < 480 - edge && y > edge && y < 480 - edge) {
-    $('status').textContent = '背景取样只能点画面边缘，避免误删宠物；请点靠近边框的背景。';
+    $('status').textContent = '请点照片边缘的背景，这样不容易误删宠物。';
     return;
   }
   const sameType = features.filter(feature => feature.name === name);
@@ -292,6 +340,10 @@ src.onclick = e => {
   draw();
 };
 $('clearOutline').onclick = () => { outline = []; draw(); };
+document.querySelectorAll('.feature').forEach(button => button.onclick = () => chooseFeature(button.dataset.feature));
+document.querySelectorAll('.step').forEach(button => button.onclick = () => setStep(+button.dataset.step));
+$('previous').onclick = () => setStep(activeStep - 1);
+$('next').onclick = () => setStep(activeStep === 5 ? 1 : activeStep + 1);
 ['grid', 'colors', 'preset', 'bgTolerance'].forEach(id => $(id).oninput = draw);
 $('png').onclick = () => {
   const a = document.createElement('a');
@@ -327,3 +379,5 @@ $('storyPack').onclick = () => {
   });
   $('status').textContent = '已生成 5 张同源过程图；浏览器若拦截多文件下载，请允许本地页面下载多个文件。';
 };
+
+setStep(1);
